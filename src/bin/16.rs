@@ -47,24 +47,30 @@ fn main() -> Result<()> {
         if maze.get(p.0, p.1).filter(|&&c| c != '#').is_none() {
             return;
         }
+        
+        if p.0 == 9 && p.1 == 3 {
+            println!("hit {}", cost);
+        }
 
         if costs.get(p.0, p.1).filter(|&&c| c < cost).is_some() {
             return;
         }
 
-        costs.set(p.0, p.1, cost);
-
         let mut new_path = path.clone();
         new_path.push(p);
             
         if maze.get(p.0, p.1).filter(|&&c| c == 'E').is_some() {
+            costs.set(p.0, p.1, cost);
             paths.push((cost, new_path));
             return;
         }
 
-        let orientations = "^>v<";
+        let all_orientations = "^>v<";
 
-        for no in orientations.chars() {
+        
+        let orientations = [vec![orientation], all_orientations.chars().filter(|&c| c != orientation).collect_vec()].concat();
+        
+        for no in orientations {
             let np = match no {
                 '^' => (p.0 - 1, p.1),
                 '>' => (p.0, p.1 + 1),
@@ -72,9 +78,12 @@ fn main() -> Result<()> {
                 '<' => (p.0, p.1 - 1),
                 _ => panic!("Invalid orientation"),
             };
-            let nc = cost + if no == orientation { 1 } else { 1001 };
-            
-            go(maze, costs, np, no, nc, &new_path, paths);
+            let rotation_cost = if no == orientation { 0 } else { 1000 };
+            let nc = cost + rotation_cost;
+            costs.set(p.0, p.1, nc);
+
+
+            go(maze, costs, np, no, nc + 1, &new_path, paths);
         }
     }
 
