@@ -61,11 +61,7 @@ fn main() -> Result<()> {
 
         costs.set(p.0, p.1, cost);
 
-        let ncs = if cheated && cheat_steps > 0 && maze.get(p.0, p.1).filter(|&&c| c == '#').is_some() {
-            cheat_steps - 1
-        } else {
-            0
-        };
+        let ncs = cheat_steps.saturating_sub(1);
 
         let nce = if cheated && ncs == 0 && cheat_end.is_none() {
             Some(p)
@@ -104,29 +100,31 @@ fn main() -> Result<()> {
             );
         }
 
-        if !cheated {
-            let next = vec![
-                (p.0 - 1, p.1),
-                (p.0, p.1 + 1),
-                (p.0 + 1, p.1),
-                (p.0, p.1 - 1),
-            ];
+        if cheated {
+            return;
+        }
 
-            for np in next {
-                let mut cloned = costs.clone();
-                go2(
-                    maze,
-                    &mut cloned,
-                    np,
-                    cost + 1,
-                    Some(p),
-                    None,
-                    cheat_max - 1,
-                    true,
-                    savings,
-                    cheat_max,
-                );
-            }
+        let next = vec![
+            (p.0 - 1, p.1),
+            (p.0, p.1 + 1),
+            (p.0 + 1, p.1),
+            (p.0, p.1 - 1),
+        ];
+
+        for np in next {
+            let mut cloned = costs.clone();
+            go2(
+                maze,
+                &mut cloned,
+                np,
+                cost + 1,
+                Some(p),
+                None,
+                cheat_max - 1,
+                true,
+                savings,
+                cheat_max,
+            );
         }
     }
 
@@ -191,14 +189,12 @@ fn main() -> Result<()> {
                 cheat_max,
             );
         }
-        
+
         let unique = savings.iter().unique().collect_vec();
-        
+
         let filtered = unique
             .into_iter()
-            .filter(|(_, _, c)| *c < reference)
-            .map(|(_, _, c)| reference - c)
-            .filter(|&s| s == 76)
+            .filter(|(_, _, c)| *c + 76 == reference)
             .collect_vec();
         let answer = filtered.len();
         Ok(answer)
