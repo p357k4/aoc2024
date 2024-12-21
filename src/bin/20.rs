@@ -51,9 +51,15 @@ fn main() -> Result<()> {
             return;
         }
 
-        if cheat_steps == 0 && maze.get(p.0, p.1).filter(|&&c| c != '#').is_none() {
+        if cheat_steps == 1 && maze.get(p.0, p.1).filter(|&&c| c == '#').is_some() {
             return;
         }
+
+        let nce = if cheat_steps == 1 {
+            Some(p)
+        } else {
+            cheat_end
+        };
 
         if costs.get(p.0, p.1).filter(|&&c| c < cost).is_some() {
             return;
@@ -61,23 +67,17 @@ fn main() -> Result<()> {
 
         costs.set(p.0, p.1, cost);
 
-        let ncs = cheat_steps.saturating_sub(1);
-
-        let nce = if cheated && ncs == 0 && cheat_end.is_none() {
-            Some(p)
-        } else {
-            cheat_end
-        };
-
         if maze.get(p.0, p.1).filter(|&&c| c == 'E').is_some() {
+            // if cheat_steps > 1 {
+            //     return;
+            // }
             if let Some(start) = cheat_start {
                 if let Some(end) = nce {
                     savings.push((start, end, cost));
                 }
             }
-            return;
         }
-
+        
         let next = vec![
             (p.0 - 1, p.1),
             (p.0, p.1 + 1),
@@ -85,11 +85,17 @@ fn main() -> Result<()> {
             (p.0, p.1 - 1),
         ];
 
-        for np in next {
+        let ncs = cheat_steps.saturating_sub(1);
+
+        for np in &next {
+            if ncs == 0 && maze.get(np.0, np.1).filter(|&&c| c == '#').is_some() {
+                continue;
+            }
+
             go2(
                 maze,
                 costs,
-                np,
+                *np,
                 cost + 1,
                 cheat_start,
                 nce,
@@ -104,23 +110,21 @@ fn main() -> Result<()> {
             return;
         }
 
-        let next = vec![
-            (p.0 - 1, p.1),
-            (p.0, p.1 + 1),
-            (p.0 + 1, p.1),
-            (p.0, p.1 - 1),
-        ];
+        let mut cloned = costs.clone();
 
-        for np in next {
-            let mut cloned = costs.clone();
+        for np in &next {
+            if maze.get(np.0, np.1).filter(|&&c| c == '#').is_none() {
+                continue;
+            }
+            
             go2(
                 maze,
                 &mut cloned,
-                np,
+                *np,
                 cost + 1,
                 Some(p),
                 None,
-                cheat_max - 1,
+                cheat_max,
                 true,
                 savings,
                 cheat_max,
@@ -194,7 +198,7 @@ fn main() -> Result<()> {
 
         let filtered = unique
             .into_iter()
-            .filter(|(_, _, c)| *c + 76 == reference)
+            .filter(|(_, _, c)| *c + 50 == reference)
             .collect_vec();
         let answer = filtered.len();
         Ok(answer)
